@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Inventarios Médicos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .btn-update {
+            background: #f39c12;
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .btn-update:hover {
+            background: #e67e22;
+        }
+
+        #itemsList {
+            margin-top: 20px;
+        }
+
+        .item-card {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stock-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .stock-CRÍTICO { background: #e74c3c; }
+        .stock-BAJO { background: #f39c12; }
+        .stock-NORMAL { background: #3498db; }
+        .stock-ALTO { background: #27ae60; }
+
+        .item-details {
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Sistema de Gestión de Inventarios Médicos</h1>
+
+        <div class="card">
+            <h2>➕ Agregar Nuevo Insumo</h2>
+            <div id="alert" class="alert"></div>
+            
+            <form id="itemForm">
+                <div class="form-group">
+                    <label for="name">Nombre del Insumo *</label>
+                    <input type="text" id="name" required placeholder="Ej: Guantes de látex">
+                </div>
+
+                <div class="form-group">
+                    <label for="stock">Stock Inicial *</label>
+                    <input type="number" id="stock" required min="0" placeholder="Ej: 100">
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Categoría *</label>
+                    <select id="category" required>
+                        <option value="">Seleccione una categoría</option>
+                        <option value="Protección Personal">Protección Personal</option>
+                        <option value="Instrumental">Instrumental</option>
+                        <option value="Medicamentos">Medicamentos</option>
+                        <option value="Material de Curación">Material de Curación</option>
+                        <option value="Equipo Médico">Equipo Médico</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Descripción</label>
+                    <textarea id="description" rows="3" placeholder="Descripción adicional del insumo"></textarea>
+                </div>
+
+                <button type="submit">Guardar Insumo</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>📋 Inventario Actual</h2>
+            <div id="itemsList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/items';
+
+        // Cargar items al inicio
+        document.addEventListener('DOMContentLoaded', loadItems);
+
+        // Manejar envío del formulario
+        document.getElementById('itemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await createItem();
+        });
+
+        async function createItem() {
+            const data = {
+                name: document.getElementById('name').value,
+                stock: parseInt(document.getElementById('stock').value),
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Insumo creado exitosamente', 'success');
+                    document.getElementById('itemForm').reset();
+                    loadItems();
+                } else {
+                    showAlert(result.errors.join(', '), 'error');
+                }
+            } catch (error) {
+                showAlert('Error al crear el insumo', 'error');
+            }
+        }
+
+        async function loadItems() {
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+
+                const itemsList = document.getElementById('itemsList');
+
+                if (result.data.length === 0) {
+                    itemsList.innerHTML = '<div class="empty-state">No hay insumos registrados</div>';
+                    return;
+                }
+
+                itemsList.innerHTML = result.data.map(item => `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <div class="item-name">${item.name}</div>
+                            <span class="stock-badge stock-${item.stockStatus}">
+                                ${item.stockStatus} (${item.stock} unidades)
+                            </span>
+                        </div>
+                        <div class="item-details">
+                            <strong>Categoría:</strong> ${item.category}<br>
+                            ${item.description ? `<strong>Descripción:</strong> ${item.description}` : ''}
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-update" onclick="updateItem('${item.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn-delete" onclick="deleteItem('${item.id}')">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showAlert('Error al cargar los insumos', 'error');
+            }
+        }
+
+        async function deleteItem(id) {
+            if (!confirm('¿Está seguro de eliminar este insumo?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Insumo eliminado exitosamente', 'success');
+                    loadItems();
+                } else {
+                    showAlert('Error al eliminar el insumo', 'error');
+                }
+            } catch (error) {
+                showAlert('Error al eliminar el insumo', 'error');
+            }
+        }
+
+        async function updateItem(id) {
+            const newStock = prompt('Ingrese el nuevo stock:');
+            if (newStock === null) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: parseInt(newStock) })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Insumo actualizado exitosamente', 'success');
+                    loadItems();
+                } else {
+                    showAlert(result.errors ? result.errors.join(', ') : 'Error al actualizar', 'error');
+                }
+            } catch (error) {
+                showAlert('Error al actualizar el insumo', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

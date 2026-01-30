@@ -1,0 +1,141 @@
+name: Pipeline de Calidad Total CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # ============================================
+  # FASE 1: PRUEBAS UNITARIAS
+  # ============================================
+  unit-tests:
+    name: 🧪 Pruebas Unitarias
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🧪 Ejecutar pruebas unitarias
+        run: npm run test:unit
+
+      - name: 📊 Subir cobertura
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # ============================================
+  # FASE 2: PRUEBAS DE INTEGRACIÓN
+  # ============================================
+  integration-tests:
+    name: 🔗 Pruebas de Integración
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🔗 Ejecutar pruebas de integración
+        run: npm run test:integration
+
+  # ============================================
+  # FASE 3: PRUEBAS END-TO-END
+  # ============================================
+  e2e-tests:
+    name: 🎭 Pruebas End-to-End
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    
+    steps:
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🎭 Instalar Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: 🚀 Ejecutar pruebas E2E
+        run: npm run test:e2e
+
+      - name: 📸 Subir capturas de pantalla (si fallan)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-screenshots
+          path: test-results/
+
+      - name: 📄 Subir reporte HTML de Playwright
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+  # ============================================
+  # FASE 4: REPORTE DE CALIDAD
+  # ============================================
+  quality-gate:
+    name: ✅ Quality Gate Final
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests]
+    if: always()
+    
+    steps:
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v4
+
+      - name: ✅ Verificar estado de todos los jobs
+        run: |
+          echo "🎯 Pipeline de Calidad Total Completado"
+          echo "✅ Pruebas Unitarias: ${{ needs.unit-tests.result }}"
+          echo "✅ Pruebas de Integración: ${{ needs.integration-tests.result }}"
+          echo "✅ Pruebas E2E: ${{ needs.e2e-tests.result }}"
+          
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.integration-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.e2e-tests.result }}" != "success" ]]; then
+            echo "❌ QUALITY GATE FAILED - El código NO puede ser desplegado"
+            exit 1
+          fi
+          
+          echo "🎉 QUALITY GATE PASSED - El código está listo para producción"
+
+      - name: 📝 Crear badge de estado
+        run: |
+          echo "![CI/CD](https://img.shields.io/badge/Quality%20Gate-Passed-brightgreen)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Resumen del Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Pruebas Unitarias" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Pruebas de Integración" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Pruebas End-to-End" >> $GITHUB_STEP_SUMMARY
